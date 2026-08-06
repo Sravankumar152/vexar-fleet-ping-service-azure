@@ -1,0 +1,13 @@
+# Copy to terraform.tfvars and fill in. NEVER commit terraform.tfvars.
+
+subscription_id = "00000000-0000-0000-0000-000000000000"
+location        = "eastus"
+
+acr_name             = "vexarfleetprodacr"
+key_vault_name       = "kv-vexar-fleet-prod"
+postgres_server_name = "psql-vexar-fleet-prod"
+
+alert_emails = ["oncall@example.com"]
+
+# REQUIRED in prod: AAD group object IDs granted AKS cluster-admin.
+aks_admin_group_object_ids = ["00000000-0000-0000-0000-000000000000"]

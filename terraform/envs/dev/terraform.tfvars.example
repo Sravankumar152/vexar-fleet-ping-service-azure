@@ -1,0 +1,20 @@
+# Copy to terraform.tfvars and fill in. NEVER commit terraform.tfvars.
+# All names below must be GLOBALLY UNIQUE where noted.
+
+subscription_id = "00000000-0000-0000-0000-000000000000"
+location        = "eastus"
+
+# ACR: 5-50 alphanumeric, globally unique.
+acr_name = "vexarfleetdevacr"
+
+# Key Vault: 3-24 alphanumeric/hyphen, globally unique.
+key_vault_name = "kv-vexar-fleet-dev"
+
+# PostgreSQL server: globally unique, lowercase.
+postgres_server_name = "psql-vexar-fleet-dev"
+
+# Where alerts go.
+alert_emails = ["oncall@example.com"]
+
+# AAD group(s) granted AKS cluster-admin (object IDs).
+aks_admin_group_object_ids = []

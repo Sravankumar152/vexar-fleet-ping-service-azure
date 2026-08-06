@@ -1,0 +1,100 @@
+# Default values for the fleet-ping chart. Override per environment with
+# values-dev.yaml / values-prod.yaml. No secrets live here — secret VALUES
+# come from Key Vault via the CSI driver at runtime.
+
+replicaCount: 2
+
+image:
+  repository: "" # e.g. vexarfleetprodacr.azurecr.io/fleet-ping
+  tag: "" # set to the immutable git SHA by CI
+  pullPolicy: IfNotPresent
+
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  # Must match the K8s SA federated in Terraform (identity module).
+  name: fleet-ping
+  # Client ID of the app user-assigned managed identity (Terraform output
+  # app_identity_client_id). Enables Workload Identity token exchange.
+  workloadIdentityClientId: ""
+
+# Azure Key Vault integration (CSI Secret Store driver).
+keyVault:
+  name: "" # e.g. kv-vexar-fleet-prod
+  tenantId: "" # AAD tenant ID
+  # Secret names in Key Vault synced into a K8s Secret and exposed as env vars.
+  secrets:
+    - kvName: db-connection-string
+      envName: DATABASE_URL
+    - kvName: jwt-secret
+      envName: JWT_SECRET
+
+service:
+  type: ClusterIP
+  port: 80
+  targetPort: 3000
+
+ingress:
+  enabled: true
+  className: webapprouting.kubernetes.azure.com
+  host: fleet.example.com
+  tls:
+    enabled: true
+    secretName: fleet-ping-tls
+  annotations: {}
+
+# Non-secret configuration.
+env:
+  NODE_ENV: production
+  PORT: "3000"
+  LOG_LEVEL: info
+  PGSSLMODE: require
+  PG_POOL_MAX: "10"
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 256Mi
+
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 70
+
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1
+
+# Hardened Pod/container security context.
+securityContext:
+  runAsNonRoot: true
+  runAsUser: 1001
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  capabilities:
+    drop: ["ALL"]
+  seccompProfile:
+    type: RuntimeDefault
+
+livenessProbe:
+  path: /healthz
+  initialDelaySeconds: 10
+  periodSeconds: 15
+  timeoutSeconds: 3
+  failureThreshold: 3
+
+readinessProbe:
+  path: /readyz
+  initialDelaySeconds: 5
+  periodSeconds: 10
+  timeoutSeconds: 3
+  failureThreshold: 3
+
+nodeSelector: {}
+tolerations: []
+affinity: {}

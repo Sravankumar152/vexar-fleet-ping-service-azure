@@ -1,0 +1,18 @@
+# Dev overrides — smaller footprint, relaxed scaling.
+replicaCount: 1
+
+autoscaling:
+  enabled: true
+  minReplicas: 1
+  maxReplicas: 3
+  targetCPUUtilizationPercentage: 75
+
+podDisruptionBudget:
+  enabled: false
+
+env:
+  NODE_ENV: production
+  LOG_LEVEL: debug
+
+ingress:
+  host: fleet-dev.example.com
