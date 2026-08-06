@@ -1,0 +1,112 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="980" height="700" viewBox="0 0 980 700" font-family="Segoe UI, Arial, sans-serif">
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L8,3 L0,6 z" fill="#555"/>
+    </marker>
+  </defs>
+
+  <rect x="0" y="0" width="980" height="700" fill="#ffffff"/>
+  <text x="24" y="32" font-size="18" font-weight="bold" fill="#1f2d3d">Fleet Ping Service — Azure Architecture</text>
+
+  <!-- Clients -->
+  <rect x="24" y="72" width="152" height="58" rx="8" fill="#ffffff" stroke="#5b6b7b" stroke-width="1.3"/>
+  <text x="100" y="97" text-anchor="middle" font-size="12.5" font-weight="bold" fill="#1f2d3d">Fleet vehicles</text>
+  <text x="100" y="114" text-anchor="middle" font-size="10.5" fill="#5a6b7b">HTTPS pings + login</text>
+
+  <!-- GitHub -->
+  <rect x="24" y="170" width="200" height="118" rx="10" fill="#f5f7fa" stroke="#b8c2cc" stroke-width="1.2"/>
+  <text x="36" y="190" font-size="12" font-weight="bold" fill="#54636f">GITHUB</text>
+  <rect x="40" y="200" width="168" height="32" rx="6" fill="#ffffff" stroke="#5b6b7b" stroke-width="1.2"/>
+  <text x="124" y="221" text-anchor="middle" font-size="12" fill="#1f2d3d">Repository</text>
+  <rect x="40" y="240" width="168" height="40" rx="6" fill="#ffffff" stroke="#5b6b7b" stroke-width="1.2"/>
+  <text x="124" y="257" text-anchor="middle" font-size="12" fill="#1f2d3d">Actions CI/CD</text>
+  <text x="124" y="271" text-anchor="middle" font-size="9.5" fill="#5a6b7b">test→scan→build→deploy→verify</text>
+
+  <!-- Azure zone -->
+  <rect x="270" y="58" width="686" height="606" rx="12" fill="#f7f9fb" stroke="#b8c2cc" stroke-width="1.2"/>
+  <text x="286" y="80" font-size="12" font-weight="bold" fill="#54636f">AZURE SUBSCRIPTION</text>
+
+  <!-- Public edge -->
+  <rect x="290" y="92" width="286" height="72" rx="10" fill="#fdecef" stroke="#d98aa0" stroke-width="1.2"/>
+  <text x="302" y="110" font-size="11.5" font-weight="bold" fill="#b5566f">PUBLIC EDGE</text>
+  <rect x="306" y="118" width="254" height="38" rx="6" fill="#ffffff" stroke="#5b6b7b" stroke-width="1.2"/>
+  <text x="433" y="141" text-anchor="middle" font-size="12" fill="#1f2d3d">AKS Ingress (App Routing) — TLS</text>
+
+  <!-- VNet -->
+  <rect x="290" y="178" width="486" height="384" rx="10" fill="#eaf2fb" stroke="#7ea9d6" stroke-width="1.3"/>
+  <text x="302" y="198" font-size="11.5" font-weight="bold" fill="#3f6fa0">VIRTUAL NETWORK (PRIVATE)</text>
+
+  <!-- AKS -->
+  <rect x="306" y="210" width="306" height="224" rx="10" fill="#dfeaf7" stroke="#7ea9d6" stroke-width="1.2"/>
+  <text x="318" y="229" font-size="11.5" font-weight="bold" fill="#3f6fa0">AKS CLUSTER</text>
+  <rect x="322" y="240" width="274" height="70" rx="6" fill="#ffffff" stroke="#5b6b7b" stroke-width="1.2"/>
+  <text x="459" y="263" text-anchor="middle" font-size="12.5" font-weight="bold" fill="#1f2d3d">fleet-ping pods</text>
+  <text x="459" y="281" text-anchor="middle" font-size="10" fill="#5a6b7b">non-root · HPA · liveness/readiness</text>
+  <text x="459" y="296" text-anchor="middle" font-size="10" fill="#5a6b7b">ServiceAccount + Workload Identity</text>
+  <rect x="322" y="320" width="274" height="40" rx="6" fill="#ffffff" stroke="#5b6b7b" stroke-width="1.2"/>
+  <text x="459" y="345" text-anchor="middle" font-size="11.5" fill="#1f2d3d">Key Vault CSI driver (secret mount)</text>
+  <rect x="322" y="372" width="274" height="40" rx="6" fill="#eef6ee" stroke="#7bb07b" stroke-width="1.2"/>
+  <text x="459" y="397" text-anchor="middle" font-size="11.5" fill="#1f2d3d">Migrations Job (pre-deploy)</text>
+
+  <!-- PostgreSQL -->
+  <rect x="628" y="240" width="130" height="128" rx="8" fill="#ffffff" stroke="#5b6b7b" stroke-width="1.3"/>
+  <text x="693" y="266" text-anchor="middle" font-size="12.5" font-weight="bold" fill="#1f2d3d">PostgreSQL</text>
+  <text x="693" y="284" text-anchor="middle" font-size="10" fill="#5a6b7b">Flexible Server</text>
+  <text x="693" y="300" text-anchor="middle" font-size="10" fill="#5a6b7b">+ PgBouncer</text>
+  <text x="693" y="316" text-anchor="middle" font-size="10" fill="#5a6b7b">private · TLS</text>
+  <text x="693" y="332" text-anchor="middle" font-size="10" fill="#5a6b7b">PITR / HA</text>
+
+  <!-- Platform services -->
+  <rect x="800" y="196" width="140" height="52" rx="8" fill="#ffffff" stroke="#5b6b7b" stroke-width="1.3"/>
+  <text x="870" y="218" text-anchor="middle" font-size="12.5" font-weight="bold" fill="#1f2d3d">Key Vault</text>
+  <text x="870" y="234" text-anchor="middle" font-size="10" fill="#5a6b7b">db + jwt secrets</text>
+
+  <rect x="800" y="260" width="140" height="52" rx="8" fill="#ffffff" stroke="#5b6b7b" stroke-width="1.3"/>
+  <text x="870" y="282" text-anchor="middle" font-size="12.5" font-weight="bold" fill="#1f2d3d">Container Registry</text>
+  <text x="870" y="298" text-anchor="middle" font-size="10" fill="#5a6b7b">images (by SHA)</text>
+
+  <rect x="800" y="324" width="140" height="60" rx="8" fill="#ffffff" stroke="#5b6b7b" stroke-width="1.3"/>
+  <text x="870" y="346" text-anchor="middle" font-size="12.5" font-weight="bold" fill="#1f2d3d">Azure Monitor</text>
+  <text x="870" y="362" text-anchor="middle" font-size="10" fill="#5a6b7b">Log Analytics /</text>
+  <text x="870" y="376" text-anchor="middle" font-size="10" fill="#5a6b7b">Container Insights + alerts</text>
+
+  <rect x="800" y="396" width="140" height="56" rx="8" fill="#ffffff" stroke="#5b6b7b" stroke-width="1.3"/>
+  <text x="870" y="418" text-anchor="middle" font-size="12.5" font-weight="bold" fill="#1f2d3d">Entra ID (AAD)</text>
+  <text x="870" y="434" text-anchor="middle" font-size="10" fill="#5a6b7b">Managed Identity</text>
+  <text x="870" y="447" text-anchor="middle" font-size="10" fill="#5a6b7b">+ RBAC</text>
+
+  <!-- Solid edges (request/data path) -->
+  <path d="M176,101 H236 Q258,101 258,120 V137 H305" fill="none" stroke="#555" stroke-width="1.4" marker-end="url(#arrow)"/>
+  <text x="200" y="94" font-size="10" fill="#41505c">HTTPS</text>
+  <path d="M433,156 V240" fill="none" stroke="#555" stroke-width="1.4" marker-end="url(#arrow)"/>
+  <text x="440" y="200" font-size="10" fill="#41505c">ingress → pod</text>
+  <path d="M596,275 H628" fill="none" stroke="#555" stroke-width="1.4" marker-end="url(#arrow)"/>
+  <text x="600" y="268" font-size="10" fill="#41505c">pooled TLS</text>
+  <path d="M596,340 C700,340 760,290 798,240" fill="none" stroke="#555" stroke-width="1.4" marker-end="url(#arrow)"/>
+  <text x="620" y="360" font-size="10" fill="#41505c">WI (no secret)</text>
+  <path d="M596,255 C690,255 740,286 798,286" fill="none" stroke="#555" stroke-width="1.4" marker-end="url(#arrow)"/>
+  <text x="626" y="248" font-size="10" fill="#41505c">pull image</text>
+
+  <!-- CI edges -->
+  <path d="M124,232 V240" fill="none" stroke="#555" stroke-width="1.4" marker-end="url(#arrow)"/>
+  <path d="M208,260 C244,260 250,340 250,400 C250,470 300,470 320,430" fill="none" stroke="#555" stroke-width="1.4" marker-end="url(#arrow)"/>
+  <text x="256" y="486" font-size="10" fill="#41505c">helm upgrade</text>
+  <path d="M224,214 C520,150 700,168 866,194" fill="none" stroke="#555" stroke-width="1.4" marker-end="url(#arrow)"/>
+  <text x="560" y="150" font-size="10" fill="#41505c">OIDC · push image · deploy</text>
+
+  <!-- Dashed edges (identity + telemetry) -->
+  <path d="M612,300 C700,470 780,410 798,384" fill="none" stroke="#8a97a3" stroke-width="1.2" stroke-dasharray="4 3" marker-end="url(#arrow)"/>
+  <text x="668" y="486" font-size="10" fill="#41505c">logs / metrics / alerts</text>
+  <path d="M800,424 C740,470 640,360 612,352" fill="none" stroke="#8a97a3" stroke-width="1.2" stroke-dasharray="4 3" marker-end="url(#arrow)"/>
+  <text x="690" y="500" font-size="10" fill="#41505c">tokens / authorize</text>
+
+  <!-- Legend -->
+  <rect x="290" y="582" width="486" height="70" rx="8" fill="#ffffff" stroke="#cfd8e0" stroke-width="1"/>
+  <text x="304" y="601" font-size="12" font-weight="bold" fill="#1f2d3d">Network boundaries</text>
+  <rect x="304" y="610" width="16" height="12" fill="#fdecef" stroke="#d98aa0"/>
+  <text x="326" y="620" font-size="10.5" fill="#5a6b7b">Public: only the ingress (HTTPS/TLS)</text>
+  <rect x="304" y="630" width="16" height="12" fill="#eaf2fb" stroke="#7ea9d6"/>
+  <text x="326" y="640" font-size="10.5" fill="#5a6b7b">Private (VNet): AKS, PostgreSQL, Key Vault, ACR — no public DB endpoint</text>
+  <text x="556" y="601" font-size="9.5" fill="#41505c">solid: request/data path</text>
+  <text x="556" y="616" font-size="9.5" fill="#41505c">dashed: identity &amp; telemetry</text>
+</svg>
