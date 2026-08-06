@@ -1,0 +1,181 @@
+name: CD
+
+# Continuous delivery. On merge to main:
+#   Build -> Security Scan -> Containerize (push by immutable SHA)
+#   -> Deploy dev -> Verify -> [manual approval] -> Deploy prod -> Verify
+# Failed deploys auto-roll-back to the previous Helm revision.
+#
+# Auth uses OIDC (azure/login) — no long-lived cloud credentials are stored.
+# Per-environment config (cluster, RG, Key Vault, identity) comes from GitHub
+# Environment variables; approval gates are GitHub Environment protection rules.
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+  id-token: write # required for Azure OIDC federated login
+
+concurrency:
+  group: cd-main
+  cancel-in-progress: false
+
+env:
+  IMAGE_NAME: fleet-ping
+
+jobs:
+  # ---- Test + Scan gate (re-run on main; also enforced on PRs by ci.yml) ----
+  verify-code:
+    name: Test & Scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+      - run: npm ci
+      - run: npm run lint --if-present
+      - run: npm test
+      - name: gitleaks
+        uses: gitleaks/gitleaks-action@v2
+      - name: npm audit (high+)
+        run: npm audit --audit-level=high
+
+  # ---- Build, scan and push the image (immutable SHA tag) ------------------
+  build-push:
+    name: Build & Push
+    needs: verify-code
+    runs-on: ubuntu-latest
+    outputs:
+      image: ${{ steps.meta.outputs.image }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: ACR login
+        run: az acr login --name ${{ vars.ACR_NAME }}
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Image reference
+        id: meta
+        run: echo "image=${{ vars.ACR_LOGIN_SERVER }}/${{ env.IMAGE_NAME }}:${{ github.sha }}" >> "$GITHUB_OUTPUT"
+
+      - name: Build image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: false
+          load: true
+          tags: ${{ steps.meta.outputs.image }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      # Scan BEFORE pushing — never publish a HIGH/CRITICAL image.
+      - name: Trivy image scan
+        uses: aquasecurity/trivy-action@0.24.0
+        with:
+          image-ref: ${{ steps.meta.outputs.image }}
+          severity: HIGH,CRITICAL
+          exit-code: "1"
+          ignore-unfixed: true
+
+      - name: Push image
+        run: docker push ${{ steps.meta.outputs.image }}
+
+  # ---- Deploy to dev (auto) ------------------------------------------------
+  deploy-dev:
+    name: Deploy dev
+    needs: build-push
+    runs-on: ubuntu-latest
+    environment: dev
+    steps:
+      - uses: actions/checkout@v4
+      - uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      - uses: azure/aks-set-context@v4
+        with:
+          resource-group: ${{ vars.RESOURCE_GROUP }}
+          cluster-name: ${{ vars.AKS_CLUSTER_NAME }}
+      - name: Deploy (Helm)
+        run: |
+          helm upgrade --install ${{ env.IMAGE_NAME }} ./k8s/fleet-ping \
+            --namespace fleet --create-namespace \
+            -f ./k8s/fleet-ping/values-dev.yaml \
+            --set image.repository=${{ vars.ACR_LOGIN_SERVER }}/${{ env.IMAGE_NAME }} \
+            --set image.tag=${{ github.sha }} \
+            --set serviceAccount.workloadIdentityClientId=${{ vars.APP_IDENTITY_CLIENT_ID }} \
+            --set keyVault.name=${{ vars.KEY_VAULT_NAME }} \
+            --set keyVault.tenantId=${{ secrets.AZURE_TENANT_ID }} \
+            --wait --timeout 5m
+      - name: Verify rollout
+        run: kubectl rollout status deployment/${{ env.IMAGE_NAME }} -n fleet --timeout=180s
+      - name: Smoke test /readyz
+        run: |
+          kubectl run smoke-$RANDOM --rm -i --restart=Never -n fleet \
+            --image=curlimages/curl:8.10.1 -- \
+            curl -fsS --max-time 10 http://${{ env.IMAGE_NAME }}/readyz
+      - name: Rollback on failure
+        if: failure()
+        run: helm rollback ${{ env.IMAGE_NAME }} -n fleet || true
+
+  # ---- Deploy to prod (requires manual approval on the 'prod' env) ----------
+  deploy-prod:
+    name: Deploy prod
+    needs: deploy-dev
+    runs-on: ubuntu-latest
+    environment: prod # protection rule = required reviewers (approval gate)
+    steps:
+      - uses: actions/checkout@v4
+      - uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      # Promote the SAME image content to the prod registry by digest — no
+      # rebuild. (If a single shared registry is used, this step is a no-op.)
+      - name: Promote image to prod registry
+        run: |
+          az acr import \
+            --name ${{ vars.ACR_NAME }} \
+            --source ${{ needs.build-push.outputs.image }} \
+            --image ${{ env.IMAGE_NAME }}:${{ github.sha }} \
+            --force
+
+      - uses: azure/aks-set-context@v4
+        with:
+          resource-group: ${{ vars.RESOURCE_GROUP }}
+          cluster-name: ${{ vars.AKS_CLUSTER_NAME }}
+      - name: Deploy (Helm)
+        run: |
+          helm upgrade --install ${{ env.IMAGE_NAME }} ./k8s/fleet-ping \
+            --namespace fleet --create-namespace \
+            -f ./k8s/fleet-ping/values-prod.yaml \
+            --set image.repository=${{ vars.ACR_LOGIN_SERVER }}/${{ env.IMAGE_NAME }} \
+            --set image.tag=${{ github.sha }} \
+            --set serviceAccount.workloadIdentityClientId=${{ vars.APP_IDENTITY_CLIENT_ID }} \
+            --set keyVault.name=${{ vars.KEY_VAULT_NAME }} \
+            --set keyVault.tenantId=${{ secrets.AZURE_TENANT_ID }} \
+            --wait --timeout 5m
+      - name: Verify rollout
+        run: kubectl rollout status deployment/${{ env.IMAGE_NAME }} -n fleet --timeout=180s
+      - name: Smoke test /readyz
+        run: |
+          kubectl run smoke-$RANDOM --rm -i --restart=Never -n fleet \
+            --image=curlimages/curl:8.10.1 -- \
+            curl -fsS --max-time 10 http://${{ env.IMAGE_NAME }}/readyz
+      - name: Rollback on failure
+        if: failure()
+        run: helm rollback ${{ env.IMAGE_NAME }} -n fleet || true
