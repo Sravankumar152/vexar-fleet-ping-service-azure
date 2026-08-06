@@ -10,7 +10,8 @@ image:
   pullPolicy: IfNotPresent
 
 nameOverride: ""
-fullnameOverride: ""
+# Deterministic resource names (used by CI rollout/verify commands).
+fullnameOverride: "fleet-ping"
 
 serviceAccount:
   # Must match the K8s SA federated in Terraform (identity module).
