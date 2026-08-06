@@ -1,23 +1,48 @@
-version: "3.8"
+# Local development / demo stack. NOT a production artifact.
+# - No hardcoded production credentials (the original committed a prod-looking
+#   password); values come from your shell/.env with safe local defaults.
+# - Postgres is bound to 127.0.0.1 only (was 0.0.0.0, i.e. exposed to the LAN).
+# - The app waits for a healthy DB, then runs migrations before starting.
 
 services:
   app:
     build: .
-    ports:
-      - "3000:3000"
     environment:
-      - NODE_ENV=production
+      NODE_ENV: ${NODE_ENV:-development}
+      PORT: "3000"
+      PGHOST: db
+      PGPORT: "5432"
+      PGDATABASE: ${PGDATABASE:-vexar_fleet}
+      PGUSER: ${PGUSER:-fleet_app}
+      PGPASSWORD: ${PGPASSWORD:-localdevpassword}
+      PGSSLMODE: disable
+      JWT_SECRET: ${JWT_SECRET:-dev-only-insecure-secret}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+    ports:
+      - "127.0.0.1:3000:3000"
+    depends_on:
+      db:
+        condition: service_healthy
+    # Run migrations, then start the server.
+    command: sh -c "node scripts/migrate.js && node server.js"
+    restart: unless-stopped
 
   db:
-    image: postgres:15
-    ports:
-      - "0.0.0.0:5432:5432"
+    image: postgres:15-alpine
     environment:
-      - POSTGRES_USER=vexaradmin
-      - POSTGRES_PASSWORD=V3xar@2024!Prod
-      - POSTGRES_DB=vexar_fleet
+      POSTGRES_USER: ${PGUSER:-fleet_app}
+      POSTGRES_PASSWORD: ${PGPASSWORD:-localdevpassword}
+      POSTGRES_DB: ${PGDATABASE:-vexar_fleet}
+    ports:
+      - "127.0.0.1:5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test:
+        ["CMD-SHELL", "pg_isready -U ${PGUSER:-fleet_app} -d ${PGDATABASE:-vexar_fleet}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
 volumes:
   pgdata:
