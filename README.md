@@ -1,112 +1,76 @@
-# Fleet Ping Service
+# VexarDrive Fleet Ping Service
 
-The Fleet Ping Service is a Node.js/Express backend service used to receive vehicle location updates and handle driver authentication.
+A Node.js/Express backend that ingests vehicle location pings and handles driver
+authentication, backed by PostgreSQL and designed to run on **Azure Kubernetes
+Service (AKS)**.
 
-The service uses PostgreSQL for persistent storage and is containerized using Docker.
+This repository is a response to the VexarDrive DevOps & Cloud Infrastructure
+Engineer technical assessment: an inherited, deliberately-flawed service taken
+to a production-ready state. See [`docs/TECHNICAL_REPORT.md`](docs/TECHNICAL_REPORT.md)
+for the full write-up of what was found, what changed, and why.
 
-## Technology Stack
+## What's here
 
-* Node.js
-* Express.js
-* PostgreSQL
-* Docker
-* GitHub Actions
-
-## API Endpoints
-
-The service currently provides endpoints for:
-
-* Driver login
-* Vehicle location ping ingestion
-* Fleet ping retrieval
-
-Refer to the application source for endpoint definitions, request formats, and current behavior.
-
-## Prerequisites
-
-To run the service locally, ensure you have:
-
-* Node.js
-* npm
-* PostgreSQL
-
-Alternatively, the application and database can be started using Docker Compose.
-
-## Local Setup
-
-Install dependencies:
-
-```bash
-npm install
 ```
-
-Configure the required environment variables using the provided environment configuration.
-
-Start the application:
-
-```bash
-node server.js
-```
-
-The service will start on the configured application port.
-
-## Database
-
-The service uses PostgreSQL.
-
-The initial database structure is available in:
-
-```text
-schema.sql
-```
-
-Apply the schema to your local PostgreSQL instance before running the application.
-
-## Docker
-
-The repository includes:
-
-```text
-Dockerfile
-docker-compose.yml
-```
-
-To start the application using Docker Compose:
-
-```bash
-docker compose up --build
-```
-
-## Configuration
-
-Application configuration is managed through environment variables.
-
-Review the existing configuration and application source to determine the variables required to run the service.
-
-## CI/CD
-
-A GitHub Actions workflow is included in the repository.
-
-Changes pushed to the `main` branch currently trigger the configured deployment workflow.
-
-## Repository Structure
-
-```text
 .
-├── .github/
-│   └── workflows/
-├── Dockerfile
-├── docker-compose.yml
-├── schema.sql
-├── server.js
-├── package.json
-└── README.md
+├── server.js               # process entry point (graceful shutdown)
+├── src/                    # application (config, logging, db pool, auth,
+│                           #   otp, validation, routes)
+├── tests/                  # jest + supertest suites
+├── db/                     # SQL migrations, least-privilege role, runner input
+├── scripts/migrate.js      # transactional migration runner
+├── Dockerfile              # multi-stage, non-root, healthchecked image
+├── docker-compose.yml      # local dev stack (app + postgres)
+├── terraform/              # Azure IaC (AKS, PostgreSQL, Key Vault, ACR, ...)
+├── k8s/fleet-ping/         # Helm chart (workload identity, CSI secrets, HPA)
+├── .github/workflows/      # CI + CD pipelines
+└── docs/                   # technical report, architecture diagram, demo script
 ```
 
-## Assessment Context
+## API
 
-This repository is provided as part of the **VexarDrive Technologies DevOps & Cloud Infrastructure Engineer Technical Assessment**.
+| Method | Path | Auth | Purpose |
+|--------|------|------|---------|
+| GET | `/healthz` | none | Liveness (process up). |
+| GET | `/readyz` | none | Readiness (DB reachable). |
+| POST | `/api/auth/request-otp` | none | Issue a login OTP for a phone. |
+| POST | `/api/auth/login` | none | Verify OTP → JWT. |
+| POST | `/api/fleet/ping` | Bearer JWT | Ingest a vehicle location ping. |
+| GET | `/api/admin/drivers` | Bearer JWT (admin) | Paginated driver listing. |
 
-Review the repository in its current state before making changes.
+## Run locally
 
-Your assessment brief contains the requirements, expected deliverables, and submission instructions.
+```bash
+cp .env.example .env         # adjust if needed (safe local defaults exist)
+docker compose up --build    # app on http://127.0.0.1:3000, migrations auto-run
+```
+
+Or without Docker:
+
+```bash
+npm install                  # also generates package-lock.json (commit it!)
+npm run db:migrate
+npm run dev
+```
+
+Test / lint:
+
+```bash
+npm test
+npm run lint
+```
+
+> **Important:** commit `package-lock.json`. The Dockerfile and CI use
+> `npm ci`, which requires the lockfile for reproducible, auditable installs.
+
+## Deploy to Azure
+
+Infrastructure and app deployment are code. A live deployment is **not**
+required by the assessment; see the deploy runbook in
+[`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md) and the reasoning in the technical
+report.
+
+## AI tool usage
+
+Per the assessment rules, AI assistance (Claude) was used; the scope is
+disclosed in the technical report.
