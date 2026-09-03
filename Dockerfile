@@ -7,7 +7,7 @@
 # =============================================================================
 
 # ---- deps: install production dependencies only ----------------------------
-FROM node:20.17-alpine AS deps
+FROM node:26.8-alpine AS deps
 WORKDIR /app
 # Copy manifests first for better layer caching.
 # NOTE: package-lock.json must be committed so `npm ci` gives reproducible,
@@ -16,7 +16,7 @@ COPY package*.json ./
 RUN npm ci --omit=dev && npm cache clean --force
 
 # ---- runtime: minimal image that only contains what we need to run ----------
-FROM node:20.17-alpine AS runtime
+FROM node:26.8-alpine AS runtime
 ENV NODE_ENV=production \
     NPM_CONFIG_UPDATE_NOTIFIER=false
 
